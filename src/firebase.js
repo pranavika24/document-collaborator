@@ -1,9 +1,7 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence, CACHE_SIZE_UNLIMITED } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyBnr8ooQ37poxSJ7Z4Bl3sybcJmmF1l5us",
   authDomain: "document-collaboration-system.firebaseapp.com",
@@ -13,20 +11,25 @@ const firebaseConfig = {
   appId: "1:465138729599:web:57c0e680a5f04a66bbb54a"
 };
 
-// Initialize Firebase
+
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase services
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 
-// Enable offline persistence
-enableIndexedDbPersistence(db)
+// Enhanced offline persistence
+enableIndexedDbPersistence(db, { 
+  cacheSizeBytes: CACHE_SIZE_UNLIMITED 
+})
   .then(() => {
-    console.log("Offline support enabled!");
+    console.log("✅ Offline support enabled - Full functionality available offline!");
   })
   .catch((err) => {
-    console.log("Offline support error:", err);
+    if (err.code === 'failed-precondition') {
+      console.log("⚠️ Multiple tabs open - offline enabled in first tab only");
+    } else if (err.code === 'unimplemented') {
+      console.log("❌ Browser doesn't support offline persistence");
+    }
   });
 
 export default app;

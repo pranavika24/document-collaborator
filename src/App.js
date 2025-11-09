@@ -4,6 +4,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import Login from './components/login.js';
 import Dashboard from './components/dashboard.js';
 import DocumentEditor from './components/DocumentEditor.js';
+import OfflineStatus from './components/OfflineStatus.js';
 import './App.css';
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
 
   return (
     <div className="App">
+      <OfflineStatus />
       <header style={{ 
         padding: '15px 20px', 
         background: '#f8f9fa', 

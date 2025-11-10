@@ -1,0 +1,71 @@
+[debug] [2025-11-10T10:51:35.326Z] ----------------------------------------------------------------------
+[debug] [2025-11-10T10:51:35.330Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Pranavika\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only functions
+[debug] [2025-11-10T10:51:35.331Z] CLI Version:   14.24.1
+[debug] [2025-11-10T10:51:35.331Z] Platform:      win32
+[debug] [2025-11-10T10:51:35.331Z] Node Version:  v25.0.0
+[debug] [2025-11-10T10:51:35.331Z] Time:          Mon Nov 10 2025 16:21:35 GMT+0530 (India Standard Time)
+[debug] [2025-11-10T10:51:35.331Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-11-10T10:51:35.708Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-11-10T10:51:35.709Z] > authorizing via signed-in user (manivasakampranavika024@gmail.com)
+[debug] [2025-11-10T10:51:35.709Z] [iam] checking project document-collaboration-system for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2025-11-10T10:51:35.711Z] Checked if tokens are valid: true, expires at: 1762775149477
+[debug] [2025-11-10T10:51:35.711Z] Checked if tokens are valid: true, expires at: 1762775149477
+[debug] [2025-11-10T10:51:35.713Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/document-collaboration-system:testIamPermissions [none]
+[debug] [2025-11-10T10:51:35.714Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/document-collaboration-system:testIamPermissions x-goog-quota-user=projects/document-collaboration-system
+[debug] [2025-11-10T10:51:35.714Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/document-collaboration-system:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2025-11-10T10:51:41.441Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/document-collaboration-system:testIamPermissions 200
+[debug] [2025-11-10T10:51:41.442Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/document-collaboration-system:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2025-11-10T10:51:41.442Z] Checked if tokens are valid: true, expires at: 1762775149477
+[debug] [2025-11-10T10:51:41.442Z] Checked if tokens are valid: true, expires at: 1762775149477
+[debug] [2025-11-10T10:51:41.443Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/document-collaboration-system/serviceAccounts/document-collaboration-system@appspot.gserviceaccount.com:testIamPermissions [none]
+[debug] [2025-11-10T10:51:41.443Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/document-collaboration-system/serviceAccounts/document-collaboration-system@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2025-11-10T10:51:51.758Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/document-collaboration-system/serviceAccounts/document-collaboration-system@appspot.gserviceaccount.com:testIamPermissions 200
+[debug] [2025-11-10T10:51:51.758Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/document-collaboration-system/serviceAccounts/document-collaboration-system@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[info] 
+[info] === Deploying to 'document-collaboration-system'...
+[info] 
+[info] i  deploying functions 
+[info] Running command: npm --prefix "$RESOURCE_DIR" run lint
+[info] +  functions: Finished running predeploy script. 
+[debug] [2025-11-10T10:51:52.830Z] Checked if tokens are valid: true, expires at: 1762775149477
+[debug] [2025-11-10T10:51:52.830Z] Checked if tokens are valid: true, expires at: 1762775149477
+[debug] [2025-11-10T10:51:52.830Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/document-collaboration-system [none]
+[debug] [2025-11-10T10:52:03.387Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/document-collaboration-system 200
+[debug] [2025-11-10T10:52:03.387Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/document-collaboration-system {"projectNumber":"465138729599","projectId":"document-collaboration-system","lifecycleState":"ACTIVE","name":"document-collaboration-system","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2025-11-09T08:01:37.203206Z"}
+[info] i  functions: preparing codebase default for deployment 
+[info] i  functions: ensuring required API cloudfunctions.googleapis.com is enabled... 
+[info] i  functions: ensuring required API cloudbuild.googleapis.com is enabled... 
+[debug] [2025-11-10T10:52:03.392Z] Checked if tokens are valid: true, expires at: 1762775149477
+[debug] [2025-11-10T10:52:03.392Z] Checked if tokens are valid: true, expires at: 1762775149477
+[info] i  artifactregistry: ensuring required API artifactregistry.googleapis.com is enabled... 
+[debug] [2025-11-10T10:52:03.393Z] Checked if tokens are valid: true, expires at: 1762775149477
+[debug] [2025-11-10T10:52:03.393Z] Checked if tokens are valid: true, expires at: 1762775149477
+[debug] [2025-11-10T10:52:03.393Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/document-collaboration-system/services/cloudbuild.googleapis.com [none]
+[debug] [2025-11-10T10:52:03.393Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/document-collaboration-system/services/cloudbuild.googleapis.com x-goog-quota-user=projects/document-collaboration-system
+[debug] [2025-11-10T10:52:03.396Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/document-collaboration-system/services/artifactregistry.googleapis.com [none]
+[debug] [2025-11-10T10:52:03.396Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/document-collaboration-system/services/artifactregistry.googleapis.com x-goog-quota-user=projects/document-collaboration-system
+[debug] [2025-11-10T10:52:08.456Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/document-collaboration-system/services/artifactregistry.googleapis.com 200
+[debug] [2025-11-10T10:52:08.457Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/document-collaboration-system/services/artifactregistry.googleapis.com [omitted]
+[warn] !  artifactregistry: missing required API artifactregistry.googleapis.com. Enabling now... 
+[debug] [2025-11-10T10:52:08.458Z] Checked if tokens are valid: true, expires at: 1762775149477
+[debug] [2025-11-10T10:52:08.458Z] Checked if tokens are valid: true, expires at: 1762775149477
+[debug] [2025-11-10T10:52:08.459Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/document-collaboration-system/services/artifactregistry.googleapis.com:enable [none]
+[debug] [2025-11-10T10:52:08.459Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/document-collaboration-system/services/artifactregistry.googleapis.com:enable x-goog-quota-user=projects/document-collaboration-system
+[debug] [2025-11-10T10:52:08.462Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/document-collaboration-system/services/cloudbuild.googleapis.com 200
+[debug] [2025-11-10T10:52:08.463Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/document-collaboration-system/services/cloudbuild.googleapis.com [omitted]
+[warn] !  functions: missing required API cloudbuild.googleapis.com. Enabling now... 
+[debug] [2025-11-10T10:52:08.463Z] Checked if tokens are valid: true, expires at: 1762775149477
+[debug] [2025-11-10T10:52:08.463Z] Checked if tokens are valid: true, expires at: 1762775149477
+[debug] [2025-11-10T10:52:08.464Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/document-collaboration-system/services/cloudbuild.googleapis.com:enable [none]
+[debug] [2025-11-10T10:52:08.464Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/document-collaboration-system/services/cloudbuild.googleapis.com:enable x-goog-quota-user=projects/document-collaboration-system
+[debug] [2025-11-10T10:52:11.123Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/document-collaboration-system/services/artifactregistry.googleapis.com:enable 400
+[debug] [2025-11-10T10:52:11.124Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/document-collaboration-system/services/artifactregistry.googleapis.com:enable [omitted]
+[debug] [2025-11-10T10:52:11.137Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/document-collaboration-system/services/cloudbuild.googleapis.com:enable 400
+[debug] [2025-11-10T10:52:11.137Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/document-collaboration-system/services/cloudbuild.googleapis.com:enable [omitted]
+[debug] [2025-11-10T10:52:16.142Z] Error: Timed out.
+    at Timeout._onTimeout (C:\Users\Pranavika\AppData\Roaming\npm\node_modules\firebase-tools\lib\utils.js:275:49)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+[error] 
+[error] Error: An unexpected error has occurred.

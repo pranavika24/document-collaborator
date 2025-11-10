@@ -1,26 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { doc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, collection, getDocs } from 'firebase/firestore';
+import emailjs from 'emailjs-com';
+import './DocumentEditor.css';
 
-function DocumentEditor({ documentId, user }) {
+// EmailJS Configuration - Replace with your actual values
+const EMAILJS_CONFIG = {
+  SERVICE_ID: 'service_1kkja17',
+  TEMPLATE_ID: 'template_hv4kzj9', 
+  PUBLIC_KEY: 'dUCnbyzV1LxxOFIKQ'
+};
+
+function DocumentEditor({ document, user, onBack }) {
   const [content, setContent] = useState('');
-  const [title, setTitle] = useState('Untitled Document');
+  const [title, setTitle] = useState('');
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [activeUsers, setActiveUsers] = useState([]);
+  const [collaborators, setCollaborators] = useState([]);
+  const [emailEnabled, setEmailEnabled] = useState(false);
+
+  // Initialize EmailJS
+  useEffect(() => {
+    if (EMAILJS_CONFIG.PUBLIC_KEY && EMAILJS_CONFIG.PUBLIC_KEY !== 'dUCnbyzV1LxxOFIKQ') {
+      emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
+      setEmailEnabled(true);
+      console.log('✅ EmailJS initialized');
+    } else {
+      console.log('❌ Please configure EmailJS with your actual credentials');
+    }
+  }, []);
 
   // Network status
   useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      console.log('✅ Connection restored - Syncing changes...');
-    };
-
-    const handleOffline = () => {
-      setIsOnline(false);
-      console.log('⚠️ You are offline - Changes will sync when connection returns');
-    };
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -31,345 +45,230 @@ function DocumentEditor({ documentId, user }) {
     };
   }, []);
 
-  // Real-time listener for document changes - FIXED VERSION
+  // Load document data
   useEffect(() => {
-    if (!documentId) return;
+    if (!document?.id) return;
 
-    const docRef = doc(db, 'documents', documentId);
-    
-    const unsubscribe = onSnapshot(docRef, 
-      (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          // Only update if content is different to avoid cursor jumping
-          if (data.content !== content) {
-            setContent(data.content || '');
-          }
-          if (data.title !== title) {
-            setTitle(data.title || 'Untitled Document');
-          }
-        }
-      },
-      (error) => {
-        if (error.code === 'unavailable') {
-          console.log('📱 Offline - Using cached data');
-        } else {
-          console.error('Error in document listener:', error);
+    const docRef = doc(db, 'documents', document.id);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setContent(data.content || '');
+        setTitle(data.title || data.name || 'Untitled Document');
+        
+        // Load collaborators from THIS document only
+        if (data.collaborators && Array.isArray(data.collaborators)) {
+          const docCollaborators = data.collaborators
+            .filter(email => email && email !== user.email)
+            .map(email => ({
+              email: email,
+              name: email.split('@')[0]
+            }));
+          setCollaborators(docCollaborators);
         }
       }
-    );
+    });
 
     return () => unsubscribe();
-  }, [documentId]); // Removed content and title dependencies
+  }, [document, user.email]);
 
-  // Track active users in this document
-  useEffect(() => {
-    if (!documentId || !user) return;
+  // Send email notification via EmailJS
+  const sendEmailNotification = async (action) => {
+    if (!emailEnabled || collaborators.length === 0) {
+      console.log('Email notifications disabled or no collaborators');
+      return;
+    }
 
-    const userActivityRef = doc(db, 'activeUsers', documentId);
-    
-    // Add current user to active users
-    const userData = {
-      userId: user.uid,
-      userName: user.displayName || user.email.split('@')[0],
-      userEmail: user.email,
-      lastActive: new Date(),
-      isActive: true
-    };
+    try {
+      console.log(`📧 Sending notifications to ${collaborators.length} collaborators`);
 
-    // This would require a different Firebase structure for real active users
-    // For now, we'll simulate it for demo
-    const demoUsers = [
-      { userName: 'You', lastAction: 'Editing now', isOnline: true },
-      { userName: 'Alex', lastAction: 'Viewing document', isOnline: true },
-      { userName: 'Sam', lastAction: 'Updated 2 min ago', isOnline: false }
-    ];
-    
-    setActiveUsers(demoUsers);
+      for (const collaborator of collaborators) {
+        const templateParams = {
+          to_name: collaborator.name,
+          to_email: collaborator.email,
+          document_title: title,
+          action: action,
+          updated_by: user.displayName,
+          updated_by_email: user.email,
+          timestamp: new Date().toLocaleString(),
+          document_link: window.location.href
+        };
 
-  }, [documentId, user]);
+        await emailjs.send(
+          EMAILJS_CONFIG.SERVICE_ID,
+          EMAILJS_CONFIG.TEMPLATE_ID,
+          templateParams
+        );
+        
+        console.log(`✅ Notification sent to: ${collaborator.email}`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to send email notification:', error);
+    }
+  };
 
-  // Save document content - IMPROVED VERSION
-  const saveDocument = async (manualSave = false) => {
-    if (!documentId) return;
+  // Save document
+  const saveDocument = async (sendNotification = false, action = 'updated the document') => {
+    if (!document?.id) return;
     
     setSaving(true);
     try {
-      const docRef = doc(db, 'documents', documentId);
+      const docRef = doc(db, 'documents', document.id);
       await updateDoc(docRef, {
         content: content,
         title: title,
-        lastUpdated: new Date(),
-        lastUpdatedBy: user.displayName || user.email.split('@')[0],
+        lastModified: new Date(),
+        lastUpdatedBy: user.displayName,
         lastUpdatedByEmail: user.email
       });
       setLastSaved(new Date());
       console.log('💾 Document saved!');
-    } catch (error) {
-      if (error.code === 'unavailable') {
-        console.log('📱 Offline - Changes saved locally, will sync when online');
-        setLastSaved(new Date());
-      } else {
-        console.error('Error saving document:', error);
+
+      // Send email notification if requested
+      if (sendNotification && emailEnabled && collaborators.length > 0) {
+        await sendEmailNotification(action);
       }
+    } catch (error) {
+      console.error('Error saving document:', error);
     }
     setSaving(false);
   };
 
-  // Auto-save when content changes - IMPROVED
+  // Auto-save without notifications
   useEffect(() => {
-    if (content && documentId) {
+    if (content && document?.id) {
       const timer = setTimeout(() => {
-        saveDocument();
-      }, 2000);
+        saveDocument(false, 'auto-save');
+      }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [content, title, documentId]); // Added documentId dependency
+  }, [content, title, document]);
+
+  // Manual save with notification
+  const handleManualSave = async () => {
+    await saveDocument(true, 'made significant updates');
+  };
 
   // Handle file upload
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Check file type
-    const allowedTypes = ['.pdf', '.doc', '.docx', '.txt'];
+    const allowedTypes = ['.pdf', '.doc', '.docx', '.txt', '.jpg', '.png'];
     const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
     
     if (!allowedTypes.includes(fileExtension)) {
-      alert('Please upload PDF, Word, or Text files only.');
+      alert('Please upload PDF, Word, Image, or Text files only.');
       return;
     }
 
-    // For demo purposes - in real app, you'd upload to Firebase Storage
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const fileContent = `\n\n--- Uploaded File: ${file.name} ---\n[File content would be processed here]\n--- End of ${file.name} ---\n\n`;
-      setContent(prevContent => prevContent + fileContent);
-      alert(`📎 ${file.name} uploaded successfully! (Demo: File content would be processed in full version)`);
-    };
-    reader.readAsText(file);
+    if (fileExtension === '.txt') {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const fileContent = `\n\n--- 📄 Uploaded File: ${file.name} ---\n${e.target.result}\n--- End of ${file.name} ---\n\n`;
+        setContent(prevContent => prevContent + fileContent);
+        setTimeout(() => {
+          saveDocument(true, `uploaded file: ${file.name}`);
+        }, 1000);
+      };
+      reader.readAsText(file);
+    } else {
+      const fileReference = `\n\n--- 📎 Uploaded File: ${file.name} (${(file.size / 1024).toFixed(2)} KB) ---\n[File uploaded: ${file.name}]\n--- End of ${file.name} ---\n\n`;
+      setContent(prevContent => prevContent + fileReference);
+      setTimeout(() => {
+        saveDocument(true, `uploaded file: ${file.name}`);
+      }, 1000);
+    }
+
+    event.target.value = '';
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto' }}>
-      {/* Collaboration Status Bar */}
-      <div style={{
-        background: isOnline ? '#e8f5e8' : '#fff3cd',
-        border: `2px solid ${isOnline ? '#4caf50' : '#ff9800'}`,
-        padding: '15px 20px',
-        borderRadius: '12px',
-        marginBottom: '25px',
-        color: isOnline ? '#2e7d32' : '#856404'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-          <div>
-            <strong>
-              {isOnline ? '✅ Online - Real-time collaboration active' : '⚠️ Offline - Editing locally'}
-            </strong>
-            {isOnline && (
-              <span style={{ marginLeft: '15px', fontSize: '14px' }}>
-                👥 <strong>{activeUsers.filter(u => u.isOnline).length} users active</strong>
-              </span>
+    <div className="document-editor">
+      <header className="editor-header">
+        <button onClick={onBack} className="back-button">← Back to Documents</button>
+        <div className="header-content">
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="title-input"
+            placeholder="Document Title"
+          />
+          <div className="editor-info">
+            <span>👤 Editing as: <strong>{user.displayName}</strong></span>
+            <span className={`status ${saving ? 'saving' : isOnline ? 'saved' : 'offline'}`}>
+              {saving ? '💾 Saving...' : isOnline ? '✅ All changes saved' : '📱 Offline editing'}
+            </span>
+            {lastSaved && <span>Last saved: {lastSaved.toLocaleTimeString()}</span>}
+          </div>
+        </div>
+      </header>
+
+      <div className="editor-content">
+        <div className="sidebar">
+          <div className="collaborators-section">
+            <h4>👥 Collaborators ({collaborators.length})</h4>
+            <div className="collaborators-list">
+              {collaborators.length > 0 ? (
+                collaborators.map((collab, index) => (
+                  <div key={index} className="collaborator-item">
+                    <div className="collaborator-name">{collab.name}</div>
+                    <div className="collaborator-email">{collab.email}</div>
+                  </div>
+                ))
+              ) : (
+                <p className="no-collaborators">No other collaborators yet</p>
+              )}
+            </div>
+          </div>
+
+          <div className="actions-section">
+            <h4>📧 Email Notifications</h4>
+            {emailEnabled ? (
+              <div className="notification-status">
+                <p>✅ EmailJS Active</p>
+                <p>{collaborators.length} collaborator(s) will be notified</p>
+                <button 
+                  onClick={handleManualSave}
+                  disabled={saving}
+                  className="notify-button"
+                >
+                  {saving ? 'Saving...' : '💾 Save & Notify All'}
+                </button>
+              </div>
+            ) : (
+              <div className="notification-setup">
+                <p>🔧 Set up EmailJS</p>
+                <small>Get free account at emailjs.com</small>
+                <small>Replace credentials in DocumentEditor.js</small>
+              </div>
             )}
           </div>
-          <div style={{ fontSize: '14px' }}>
-            {lastSaved && `Last saved: ${lastSaved.toLocaleTimeString()}`}
+
+          <div className="upload-section">
+            <h4>📎 Upload File</h4>
+            <input
+              type="file"
+              id="fileUpload"
+              onChange={handleFileUpload}
+              accept=".pdf,.doc,.docx,.txt,.jpg,.png"
+            />
+            <label htmlFor="fileUpload" className="upload-button">
+              Choose File
+            </label>
+            <small>Supports: PDF, Word, Text, Images</small>
           </div>
         </div>
-      </div>
 
-      {/* Active Users Sidebar */}
-      {isOnline && (
-        <div style={{
-          background: 'white',
-          border: '2px solid #007bff',
-          borderRadius: '12px',
-          padding: '15px',
-          marginBottom: '20px',
-          boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
-        }}>
-          <h4 style={{ margin: '0 0 10px 0', color: '#007bff' }}>👥 Active Collaborators</h4>
-          <div style={{ display: 'grid', gap: '8px' }}>
-            {activeUsers.map((user, index) => (
-              <div key={index} style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '8px',
-                background: user.isOnline ? '#f0f8ff' : '#f8f9fa',
-                borderRadius: '6px',
-                borderLeft: `4px solid ${user.isOnline ? '#28a745' : '#6c757d'}`
-              }}>
-                <div>
-                  <strong>{user.userName}</strong>
-                  {user.userName === 'You' && ' (You)'}
-                </div>
-                <div style={{
-                  fontSize: '12px',
-                  color: user.isOnline ? '#28a745' : '#6c757d'
-                }}>
-                  {user.isOnline ? '🟢 Online' : '⚫ Offline'}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Document Header */}
-      <div style={{ 
-        marginBottom: '25px',
-        background: 'white',
-        padding: '20px',
-        borderRadius: '12px',
-        boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
-      }}>
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          style={{ 
-            width: '100%', 
-            padding: '15px', 
-            fontSize: '28px', 
-            border: 'none',
-            borderBottom: `3px solid ${isOnline ? '#007bff' : '#ff9800'}`,
-            marginBottom: '15px',
-            background: 'transparent',
-            fontWeight: 'bold',
-            color: '#333'
-          }}
-          placeholder="Document Title"
-        />
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
-          <span style={{ color: '#666', fontSize: '15px' }}>
-            👤 Editing as: <strong>{user.displayName || user.email.split('@')[0]}</strong>
-          </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <span style={{ 
-              color: saving ? '#ff9800' : isOnline ? '#4caf50' : '#ff9800', 
-              fontSize: '15px',
-              fontWeight: 'bold',
-              background: saving ? '#fff3cd' : isOnline ? '#e8f5e8' : '#fff3cd',
-              padding: '8px 15px',
-              borderRadius: '20px'
-            }}>
-              {saving ? '💾 Saving...' : isOnline ? '✅ All changes saved' : '📱 Saving locally...'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* File Upload Section */}
-      <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white',
-        padding: '15px 20px',
-        borderRadius: '10px',
-        marginBottom: '20px',
-        textAlign: 'center'
-      }}>
-        <h4 style={{ margin: '0 0 10px 0' }}>📎 Upload Files</h4>
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
-          <input
-            type="file"
-            id="fileUpload"
-            onChange={handleFileUpload}
-            accept=".pdf,.doc,.docx,.txt"
-            style={{ display: 'none' }}
+        <div className="editor-main">
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Start typing your document here... Your changes are saved automatically!"
+            className="editor-textarea"
           />
-          <label htmlFor="fileUpload" style={{
-            padding: '10px 20px',
-            background: 'rgba(255,255,255,0.2)',
-            border: '2px dashed white',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontSize: '14px'
-          }}>
-            📄 Choose PDF/Word File
-          </label>
-          <span style={{ fontSize: '12px', opacity: 0.8 }}>
-            Supports: PDF, Word (.doc, .docx), Text files
-          </span>
         </div>
-      </div>
-
-      {/* Editor */}
-      <div style={{
-        background: 'white',
-        borderRadius: '12px',
-        boxShadow: '0 5px 20px rgba(0,0,0,0.1)',
-        overflow: 'hidden',
-        marginBottom: '20px'
-      }}>
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Start typing your document here... Your changes are saved automatically and visible to others in real-time! 
-
-💡 Demo Tips:
-• Type something - others will see it instantly
-• Turn off WiFi to test offline mode  
-• Upload files using the button above
-• See who's online in the active users list"
-          style={{
-            width: '100%',
-            height: '500px',
-            padding: '25px',
-            fontSize: '16px',
-            border: 'none',
-            resize: 'vertical',
-            fontFamily: 'Arial, sans-serif',
-            background: isOnline ? 'white' : '#fffaf0',
-            lineHeight: '1.6'
-          }}
-        />
-      </div>
-
-      {/* Action Buttons */}
-      <div style={{ 
-        textAlign: 'center',
-        display: 'flex',
-        gap: '15px',
-        justifyContent: 'center',
-        flexWrap: 'wrap'
-      }}>
-        <button 
-          onClick={() => saveDocument(true)}
-          style={{
-            padding: '15px 30px',
-            background: isOnline ? 
-              'linear-gradient(135deg, #007bff 0%, #0056b3 100%)' : 
-              'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '10px',
-            cursor: 'pointer',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            minWidth: '150px',
-            boxShadow: '0 5px 15px rgba(0,0,0,0.2)'
-          }}
-        >
-          {saving ? '💾 Saving...' : isOnline ? '💾 Save Now' : '📱 Save Locally'}
-        </button>
-
-        <button 
-          onClick={() => window.print()}
-          style={{
-            padding: '15px 30px',
-            background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '10px',
-            cursor: 'pointer',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            minWidth: '150px'
-          }}
-        >
-          🖨️ Print Document
-        </button>
       </div>
     </div>
   );

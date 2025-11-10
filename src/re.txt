@@ -1,0 +1,6 @@
+const reportWebVitals = () => {
+  // No-op: Performance monitoring disabled
+  // Remove this if you don't need any performance tracking
+};
+
+export default reportWebVitals;
